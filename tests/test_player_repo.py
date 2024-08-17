@@ -1,11 +1,8 @@
-import asyncio
-
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import sessionmaker
 
+from osrs_bot_detector_db.database import get_db
 from osrs_bot_detector_db.models.player import Player
 from osrs_bot_detector_db.repositories.player_repository import PlayerRepository
 from osrs_bot_detector_db.schemas.player import (
@@ -71,6 +68,7 @@ async def test_get_player_by_id(
         player_id = player.id
     player_response = await player_repository.get(player_id=player_id)
     assert player_response is not None
+    assert isinstance(player_response, PlayerResponse)
     assert player_response.name == "Test_Player"
 
 
