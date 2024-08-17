@@ -1,0 +1,1 @@
+# osrs_bot_detector_db
