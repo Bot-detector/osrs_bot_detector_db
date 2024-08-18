@@ -1,0 +1,28 @@
+services:
+  mysql:
+    container_name: database
+    build:
+      context: ./mysql
+    image: mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_bot_buster
+    volumes:
+      - ./mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./mysql/conf.d:/etc/mysql/conf.d
+      # - ./mysql/mount:/var/lib/mysql # creates persistence
+    ports:
+      - 3307:3306
+    networks:
+      - botdetector-network
+    healthcheck:
+      test: "mysqladmin ping -h localhost -u root -proot_bot_buster"
+      # during this period fails are not considered
+      start_period: 30s
+      # time between cmd
+      interval: 30s
+      # time given to the cmd
+      timeout: 5s
+
+
+networks:
+  botdetector-network:

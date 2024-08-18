@@ -35,11 +35,10 @@ class PlayerRepository:
 
     async def create(self, player_create: PlayerCreate) -> None:
         sql = insert(self.model).values(player_create.model_dump())
-        async with self.db_session() as session:
-            session: AsyncSession
-            async with session.begin():
-                _ = await session.execute(sql)
-                await session.commit()
+
+        async with self.db_session.begin():
+            _ = await self.db_session.execute(sql)
+            await self.db_session.commit()
         return None
 
     async def update(self, player_id: int, player_update: PlayerUpdate) -> None:

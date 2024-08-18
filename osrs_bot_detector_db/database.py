@@ -1,19 +1,31 @@
+from typing import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from .config import Settings
+from sqlalchemy.orm import scoped_session, sessionmaker
 
-# Async engine and session
-engine = create_async_engine(Settings().DATABASE_URL, echo=True)
-SessionLocal = sessionmaker(
-    bind=engine,
-    class_=AsyncSession,
-    expire_on_commit=False
-)
 
-# Base class for ORM models
-Base = declarative_base()
+class Database:
+    def __init__(self, database_url: str):
+        # Create async engine
+        self.engine = create_async_engine(database_url, echo=True)
+        # Create session factory
+        self.SessionLocal = sessionmaker(
+            bind=self.engine, class_=AsyncSession, expire_on_commit=False
+        )
+        # Create scoped session
+        self.scoped_session = scoped_session(self.SessionLocal)
 
-async def get_db():
-    async with SessionLocal() as session:
-        yield session
+    async def get_db(self) -> AsyncGenerator[AsyncSession, None]:
+        """
+        Provides an async context manager for the session.
+        Yields:
+            AsyncSession: An asynchronous SQLAlchemy session.
+        """
+        async with self.scoped_session() as session:
+            yield session
+
+    async def close(self) -> None:
+        """
+        Dispose of the SQLAlchemy engine.
+        """
+        await self.engine.dispose()
