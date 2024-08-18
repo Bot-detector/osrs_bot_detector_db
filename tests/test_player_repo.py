@@ -14,7 +14,7 @@ async def test_create_player(session: AsyncSession):
             possible_ban=False,
             confirmed_ban=False,
             confirmed_player=True,
-            label_id=0,
+            label_id=1,
             label_jagex=2,
             ironman=False,
             hardcore_ironman=False,
