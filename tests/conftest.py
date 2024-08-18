@@ -1,3 +1,5 @@
+from contextlib import asynccontextmanager
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
@@ -27,6 +29,7 @@ async def setup_database():
 
 
 @pytest.fixture(scope="function")
+@asynccontextmanager
 async def session(setup_database):
     """
     Provide a new session for each test function.
