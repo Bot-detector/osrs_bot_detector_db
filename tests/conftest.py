@@ -28,8 +28,10 @@ async def setup_database():
     await engine.dispose()
 
 
-@pytest.fixture(scope="function")
-@asynccontextmanager
+import pytest_asyncio
+
+
+@pytest_asyncio.fixture(scope="session")
 async def session(setup_database):
     """
     Provide a new session for each test function.

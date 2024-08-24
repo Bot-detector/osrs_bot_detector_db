@@ -33,15 +33,15 @@ class LabelRepository(CRUD):
         kwargs = model.model_dump(exclude_none=True, exclude_unset=True)
         return await super().create(**kwargs)
 
-    async def read(self, model: LabelResponse, limit: int = 100) -> LabelTable:
+    async def request(self, limit: int = 100, **kwargs) -> LabelTable:
         """
         Asynchronously read a record based on provided field(s).
         :param kwargs: Field name(s) and value(s) to filter by
         :return: LabelTable instance or None
         """
-        kwargs = self._convert_to_kwargs(model)
-        kwargs["limit"] = limit if limit < 100 else limit
-        return await super().read(**kwargs)
+        labels = await super().request(limit=limit, **kwargs)
+        print(labels)
+        return [LabelResponse(**l) for l in labels]
 
     async def update(self, id_value: int, model: LabelUpdate) -> LabelTable:
         """

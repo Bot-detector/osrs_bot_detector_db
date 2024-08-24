@@ -30,11 +30,11 @@ class CRUD:
         :return: Created model instance
         """
         async with self.db_session.begin():
-            sql = insert(self.model).values(**kwargs).returning(self.model)
-            result = await self.db_session.execute(sql)
-            return result.fetchone()
+            sql = insert(self.model).values(**kwargs).prefix_with("ignore")
+            _ = await self.db_session.execute(sql)
+            await self.db_session.commit()
 
-    async def read(self, **kwargs):
+    async def request(self, limit: int, **kwargs):
         """
         Asynchronously read a record based on provided field(s).
         :param kwargs: Field name(s) and value(s) to filter by
@@ -48,11 +48,9 @@ class CRUD:
                 )
             filters.append(getattr(self.model, field) == value)
 
-        async with self.db_session() as session:
-            session: AsyncSession  # must have type hint
-            sql = select(self.model).where(*filters)
-            result = await session.execute(sql)
-            return result.fetchone()
+        sql = select(self.model).where(*filters).limit(limit)
+        result = await self.db_session.execute(sql)
+        return result.mappings().all()  # i don't understand why this is not good
 
     async def update(self, id_value, **kwargs):
         """
@@ -62,17 +60,14 @@ class CRUD:
         :return: Updated model instance
         """
         primary_key_column = self._get_primary_key_column()
-        async with self.db_session() as session:
-            session: AsyncSession  # must have type hint
-            async with session.begin():
-                sql = (
-                    update(self.model)
-                    .where(primary_key_column == id_value)
-                    .values(**kwargs)
-                    .returning(self.model)
-                )
-                result = await session.execute(sql)
-                return result.fetchone()
+        async with self.db_session.begin():
+            sql = (
+                update(self.model)
+                .where(primary_key_column == id_value)
+                .values(**kwargs)
+            )
+            _ = await self.db_session.execute(sql)
+            await self.db_session.commit()
 
     async def delete(self, id_value):
         """
@@ -81,13 +76,7 @@ class CRUD:
         :return: Boolean indicating success
         """
         primary_key_column = self._get_primary_key_column()
-        async with self.db_session() as session:
-            session: AsyncSession  # must have type hint
-            async with session.begin():
-                sql = (
-                    delete(self.model)
-                    .where(primary_key_column == id_value)
-                    .returning(self.model)
-                )
-                result = await session.execute(sql)
-                return result.rowcount > 0
+        async with self.db_session.begin():
+            sql = delete(self.model).where(primary_key_column == id_value)
+            _ = await self.db_session.execute(sql)
+            await self.db_session.commit()
