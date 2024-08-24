@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,7 +12,7 @@ async def test_create_player(session: AsyncSession):
     async with session as db_session:
         player_repository = PlayerRepository(db_session=db_session)
         player_create = PlayerCreate(
-            name="Test_Player",
+            name=f"Test_Player_{str(uuid.uuid4())[-4:]}",
             possible_ban=False,
             confirmed_ban=False,
             confirmed_player=True,

@@ -9,5 +9,9 @@ class LabelCreate(LabelBase):
     pass
 
 
+class LabelUpdate(LabelBase):
+    id: int
+
+
 class LabelResponse(LabelBase):
     id: int

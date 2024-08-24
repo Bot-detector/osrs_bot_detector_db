@@ -1,6 +1,6 @@
 from sqlalchemy import delete, insert, select, update
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.inspection import inspect
 
 
 class CRUD:
@@ -13,18 +13,26 @@ class CRUD:
         self.model = model
         self.db_session = db_session
 
+    def _get_primary_key_column(self):
+        """
+        Get the primary key column of the model.
+        :return: Primary key column object
+        """
+        mapper = inspect(self.model)
+        if not mapper.primary_key:
+            raise AttributeError(f"{self.model.__name__} does not have a primary key")
+        return mapper.primary_key[0]
+
     async def create(self, **kwargs):
         """
         Asynchronously create a new record.
         :param kwargs: Field values
         :return: Created model instance
         """
-        async with self.db_session() as session:
-            session: AsyncSession
-            async with session.begin():
-                sql = insert(self.model).values(**kwargs).returning(self.model)
-                result = await session.execute(sql)
-                return result.fetchone()
+        async with self.db_session.begin():
+            sql = insert(self.model).values(**kwargs).returning(self.model)
+            result = await self.db_session.execute(sql)
+            return result.fetchone()
 
     async def read(self, **kwargs):
         """
@@ -41,42 +49,45 @@ class CRUD:
             filters.append(getattr(self.model, field) == value)
 
         async with self.db_session() as session:
-            session: AsyncSession
-
+            session: AsyncSession  # must have type hint
             sql = select(self.model).where(*filters)
             result = await session.execute(sql)
             return result.fetchone()
 
-    async def update(self, id: int, **kwargs):
+    async def update(self, id_value, **kwargs):
         """
         Asynchronously update a record by ID.
-        :param id: Model ID
+        :param id_value: Value of the primary key
         :param kwargs: Updated field values
         :return: Updated model instance
         """
+        primary_key_column = self._get_primary_key_column()
         async with self.db_session() as session:
-            session: AsyncSession
+            session: AsyncSession  # must have type hint
             async with session.begin():
                 sql = (
                     update(self.model)
-                    .where(self.model.id == id)
+                    .where(primary_key_column == id_value)
                     .values(**kwargs)
                     .returning(self.model)
                 )
                 result = await session.execute(sql)
                 return result.fetchone()
 
-    async def delete(self, id: int):
+    async def delete(self, id_value):
         """
         Asynchronously delete a record by ID.
-        :param id: Model ID
+        :param id_value: Value of the primary key
         :return: Boolean indicating success
         """
+        primary_key_column = self._get_primary_key_column()
         async with self.db_session() as session:
-            session: AsyncSession
+            session: AsyncSession  # must have type hint
             async with session.begin():
                 sql = (
-                    delete(self.model).where(self.model.id == id).returning(self.model)
+                    delete(self.model)
+                    .where(primary_key_column == id_value)
+                    .returning(self.model)
                 )
                 result = await session.execute(sql)
                 return result.rowcount > 0
