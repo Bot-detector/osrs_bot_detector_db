@@ -1,76 +1,82 @@
 from sqlalchemy import delete, insert, select, update
-from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class CRUD:
-    def __init__(self, model):
+    def __init__(self, model, db_session: AsyncSession):
         """
         CRUD class constructor.
         :param model: SQLAlchemy ORM model
+        :param db_session: Asynchronous database session factory
         """
         self.model = model
+        self.db_session = db_session
 
-    def create(self, session: Session, **kwargs):
+    async def create(self, **kwargs):
         """
-        Create a new record.
-        :param session: Database session
+        Asynchronously create a new record.
         :param kwargs: Field values
         :return: Created model instance
         """
-        with session.begin():
-            sql = insert(self.model).values(**kwargs).returning(self.model)
-            result = session.execute(sql)
-            return result.fetchone()
+        async with self.db_session() as session:
+            session: AsyncSession
+            async with session.begin():
+                sql = insert(self.model).values(**kwargs).returning(self.model)
+                result = await session.execute(sql)
+                return result.fetchone()
 
-    def read(self, session: Session, **kwargs):
+    async def read(self, **kwargs):
         """
-        Read a record based on provided field(s).
-        :param session: Database session
+        Asynchronously read a record based on provided field(s).
         :param kwargs: Field name(s) and value(s) to filter by
         :return: Model instance or None
         """
-        if not kwargs:
-            raise ValueError("At least one field and value must be provided")
-
         filters = []
         for field, value in kwargs.items():
-            if hasattr(self.model, field):
-                filters.append(getattr(self.model, field) == value)
-            else:
+            if not hasattr(self.model, field):
                 raise AttributeError(
                     f"{self.model.__name__} has no attribute '{field}'"
                 )
+            filters.append(getattr(self.model, field) == value)
 
-        sql = select(self.model).where(*filters)
-        result = session.execute(sql)
-        return result.fetchone()
+        async with self.db_session() as session:
+            session: AsyncSession
 
-    def update(self, session: Session, id: int, **kwargs):
+            sql = select(self.model).where(*filters)
+            result = await session.execute(sql)
+            return result.fetchone()
+
+    async def update(self, id: int, **kwargs):
         """
-        Update a record by ID.
-        :param session: Database session
+        Asynchronously update a record by ID.
         :param id: Model ID
         :param kwargs: Updated field values
         :return: Updated model instance
         """
-        with session.begin():
-            sql = (
-                update(self.model)
-                .where(self.model.id == id)
-                .values(**kwargs)
-                .returning(self.model)
-            )
-            result = session.execute(sql)
-            return result.fetchone()
+        async with self.db_session() as session:
+            session: AsyncSession
+            async with session.begin():
+                sql = (
+                    update(self.model)
+                    .where(self.model.id == id)
+                    .values(**kwargs)
+                    .returning(self.model)
+                )
+                result = await session.execute(sql)
+                return result.fetchone()
 
-    def delete(self, session: Session, id: int):
+    async def delete(self, id: int):
         """
-        Delete a record by ID.
-        :param session: Database session
+        Asynchronously delete a record by ID.
         :param id: Model ID
         :return: Boolean indicating success
         """
-        with session.begin():
-            sql = delete(self.model).where(self.model.id == id).returning(self.model)
-            result = session.execute(sql)
-            return result.rowcount > 0
+        async with self.db_session() as session:
+            session: AsyncSession
+            async with session.begin():
+                sql = (
+                    delete(self.model).where(self.model.id == id).returning(self.model)
+                )
+                result = await session.execute(sql)
+                return result.rowcount > 0
