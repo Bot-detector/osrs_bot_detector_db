@@ -7,6 +7,7 @@ from osrs_bot_detector_db.repositories.player_repository import PlayerRepository
 from osrs_bot_detector_db.schemas.player import PlayerCreate
 
 
+# TODO: try create duplicate player
 @pytest.mark.asyncio
 async def test_create_player(session: AsyncSession):
     async with session as db_session:
